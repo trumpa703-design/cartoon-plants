@@ -105,7 +105,7 @@ function scriptSys(cfg, sceneCount) {
     ``,
     `Правила:`,
     `1. Ровно ${n} сцен.`,
-    `2. Одна voiceover-реплика на сцену, 14–17 русских слов (цель ~15), точный word_count.`,
+    `2. Одна voiceover-реплика на сцену, ровно ${cfg.voiceover_word_min || 16}–${cfg.voiceover_word_max || 17} русских слов, точный word_count.`,
     `3. Каждый совет АГРОНОМИЧЕСКИ ТОЧНЫЙ (далее фактчекинг, но старайся сразу давать верные данные).`,
     `4. Поле claim в каждой сцене — коротко суть фактического утверждения.`,
     `5. Без музыки, субтитров, визуальных промптов.`,
@@ -142,7 +142,7 @@ function factcheckSys(cfg, sceneCount) {
     `6. Противоречия — не противоречат ли советы друг другу?`,
     ``,
     `Вердикт по каждому claim: "verified" (корректно) | "corrected" (есть неточность — даёшь исправленную формулировку) | "rejected" (неверно/вредно — заменяешь на точный совет по теме).`,
-    `Если исправил/заменил — обязательно сохрани длину voiceover 14–17 слов и смысл сцены. Не выдумывай факты; если не уверен — дай проверенный базовый совет.`,
+    `Если исправил/заменил — обязательно сохрани длину voiceover ${cfg.voiceover_word_min || 16}–${cfg.voiceover_word_max || 17} слов и смысл сцены. Не выдумывай факты; если не уверен — дай проверенный базовый совет.`,
     ``,
     `Верни ТОЛЬКО валидный JSON:`,
     `{`,
@@ -200,6 +200,12 @@ function videoSys(cfg, sceneCount) {
     ``,
     `КРИТИЧНО — ИДЕНТИЧНОСТЬ: используй картинку сцены как image-to-video source. Preserve the character 100%: same face, eyes, smile, body, arms, foliage, ${cfg.crop_en} details. No morphing, no redesign.`,
     ``,
+    `ЖЁСТКИЕ ОГРАНИЧЕНИЯ ВИДЕО (пиши это в каждый prompt):`,
+    `- Персонаж УКОРЕНЁН в земле: НЕ ходит, НЕ шагает, НЕ двигает основанием, ног НЕТ. Только жесты branch-arms, наклоны, лёгкий поворот — основание фиксировано в почве.`,
+    `- Минимум движения против галлюцинаций: лёгкий ветер в листве, мягкие жесты, микро-выражения лица. Без резких смен, без появления новых объектов, без трансформаций.`,
+    `- БЕЗ переходов, БЕЗ музыки, БЕЗ фонового трека, БЕЗ субтитров и текста. Только голос персонажа.`,
+    `- "Rooted in soil, no walking, no legs, no locomotion. Minimal motion. No transitions, no music, no text overlays. No hallucinated objects."`,
+    ``,
     `Каждый prompt = многоабзацный текст с блоками:`,
     `- "Use scene X image as the exact image-to-video source..." (identity preservation)`,
     `- "Motion:" — движение сцены (камера, жесты рук, листва, реквизит) из visual/voiceover.`,
@@ -217,4 +223,16 @@ function videoSys(cfg, sceneCount) {
   ].join('\n');
 }
 
-module.exports = { brainstormSys, selectSys, scriptSys, factcheckSys, imageSys, videoSys, sceneRolesText };
+module.exports = { brainstormSys, selectSys, scriptSys, factcheckSys, imageSys, videoSys, sceneRolesText, fixWordsSys };
+
+// ---------- SCRIPT WORD-COUNT FIXER ----------
+function fixWordsSys(min, max) {
+  return [
+    `Ты — Script Fixer. В каждой сцене voiceover должен содержать РОВНО ${min}–${max} русских слов.`,
+    `Сейчас в некоторых сценах неправильное число слов. Перепиши ТОЛЬКО voiceover в каждой сцене,`,
+    `чтобы длина была ровно ${min}–${max} слов (считай строго по пробелам).`,
+    `Сохраняй: смысл сцены, факт (claim), advice_focus, scene_role. Меняй только формулировку voiceover и word_count.`,
+    `Голос от первого лица (${min}–${max} слов), естественно и понятно.`,
+    `Верни ТОЛЬКО валидный JSON того же формата, что и script (episode_topic, episode_angle, scenes[] с scene_number, scene_role, advice_focus, claim, voiceover, word_count, retention_hook, continuity_note).`,
+  ].join('\n');
+}

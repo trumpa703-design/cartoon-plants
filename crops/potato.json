@@ -7,8 +7,11 @@
   "reference": "references/potato_ref.jpeg",
   "reference_url": "https://drive.google.com/uc?export=download&id=1pqbUBmof3MqSGp1Mnrko4ARrt3-qgw7z",
   "sceneCount": 5,
-  "voice_id": "potato_voice_ru_male_warm_20_30",
-  "voice_description": "warm friendly Russian male voice, young adult 20-30 years old, grounded, calm but lively, caring, trustworthy, slightly smiling, clear diction, medium-slow pace, friendly garden mentor tone; not childish, not old, not robotic, not theatrical",
+  "voice_id": "jL6Wnl4akuzRHeLNp8SY",
+  "voice_description": "non-robotic male Russian voice, ~30 years old, warm, calm, friendly, confident, clear diction, medium pace, garden-mentor tone; identical voice across the whole 40s video (same voice as cucumber); not robotic, not old, not theatrical",
+  "product_reference_url": "https://drive.google.com/uc?export=download&id=1Id5xcZ-TSnf902MCys4Np7V6X-hMKmIn",
+  "voiceover_word_min": 16,
+  "voiceover_word_max": 17,
   "environment_core": "realistic richly detailed potato bed / ridged soil field with warm natural sunlight, rustic tools, textured soil, potato ridges, garden tools",
   "topic_examples": [
     "Почему картофель мелкий",

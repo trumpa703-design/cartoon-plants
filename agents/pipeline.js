@@ -8,6 +8,37 @@
 const OR = require('../lib/openrouter');
 const prompts = require('./prompts');
 
+function countRuWords(s) {
+  return String(s || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * Ensure every scene's voiceover is within [min,max] words via a corrective agent pass.
+ */
+async function enforceWordCount(apiKey, model, script, min, max) {
+  const scenes = (script && script.scenes) || [];
+  if (!scenes.length) return script;
+  const isBad = (s) => { const c = countRuWords(s.voiceover); return c < min || c > max; };
+  if (!scenes.some(isBad)) {
+    console.log('   word-count OK (все ' + min + '-' + max + ' слов)');
+    return script;
+  }
+  console.log('   word-count нарушен: ' + scenes.filter(isBad).map((s) => 'сц' + s.scene_number + '=' + countRuWords(s.voiceover)).join(', ') + ' — правлю…');
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const fixed = await OR.chatJsonRetry(apiKey, model, prompts.fixWordsSys(min, max), JSON.stringify({ script }, null, 2), {}, 3);
+    const fscenes = (fixed && fixed.scenes) || [];
+    fscenes.forEach((s) => { s.word_count = countRuWords(s.voiceover); });
+    if (fscenes.length && !fscenes.some(isBad)) {
+      console.log('   word-count исправлен');
+      return fixed;
+    }
+    script = fixed;
+    console.log('   ещё пытаюсь (' + (attempt + 1) + ')');
+  }
+  console.log('   word-count: не идеально, беру лучший вариант');
+  return script;
+}
+
 /**
  * Run the full agent pipeline for one crop.
  * @param {object} o
@@ -39,12 +70,17 @@ async function runPipeline(o) {
   );
 
   console.log('[3/6] сценарий…');
-  const script = await OR.chatJsonRetry(
+  let script = await OR.chatJsonRetry(
     apiKey, model,
     prompts.scriptSys(cfg, sceneCount),
     JSON.stringify({ idea, episode_structure: cfg.episode_structure }, null, 2),
     { temperature: 0.7 }, 3
   );
+
+  // enforce voiceover word count (16-17) with a corrective pass if needed
+  const wmin = cfg.voiceover_word_min || 16;
+  const wmax = cfg.voiceover_word_max || 17;
+  script = await enforceWordCount(apiKey, model, script, wmin, wmax);
 
   console.log('[4/6] ФАКТЧЕК агрономической точности…');
   const factcheck = await OR.chatJsonRetry(

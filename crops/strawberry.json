@@ -7,8 +7,11 @@
   "reference": "references/strawberry_ref.jpeg",
   "reference_url": "https://drive.google.com/uc?export=download&id=1Tz8hfeDyxgahTZ_We48m_u0zGyF3tUf2",
   "sceneCount": 5,
-  "voice_id": "strawberry_voice_ru_female_warm_20_30",
-  "voice_description": "warm soft Russian female voice, young adult 20-30 years old, gentle, lively, caring, trustworthy, slightly smiling, clear diction, medium-slow pace, friendly garden mentor tone; not childish, not old, not robotic, not theatrical",
+  "voice_id": "dVRDrbP5ULGXB94se4KZ",
+  "voice_description": "young non-robotic female Russian voice, ~20 years old, warm, friendly, lively, caring, clear diction, medium pace, garden-mentor tone; identical voice across the whole 40s video (same voice as tomato); not robotic, not childish, not old",
+  "product_reference_url": "https://drive.google.com/uc?export=download&id=1Id5xcZ-TSnf902MCys4Np7V6X-hMKmIn",
+  "voiceover_word_min": 16,
+  "voiceover_word_max": 17,
   "environment_core": "realistic richly detailed strawberry bed / raised bed with straw mulch, warm natural sunlight, garden tools, rustic fence, textured soil",
   "topic_examples": [
     "Почему клубника мелкая",

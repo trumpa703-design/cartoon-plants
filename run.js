@@ -17,12 +17,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const { parseArgs, ensureDir, saveBuffer, stamp, sleep, extractJson, ensureRefLocal } = require('./lib/util');
+const { parseArgs, ensureDir, saveBuffer, stamp, sleep, extractJson, ensureRefLocal, downloadFile } = require('./lib/util');
 const { runPipeline } = require('./agents/pipeline');
 const poyo = require('./lib/poyo-image-gpt2');
 const vns = require('./lib/veononstop');
 const ffmpeg = require('./lib/ffmpeg');
 const google = require('./lib/google');
+const elevenlabs = require('./lib/elevenlabs');
+const subtitles = require('./lib/subtitles');
 
 // ---------- tiny .env loader (no dotenv dependency) ----------
 function loadEnv(file) {
@@ -107,12 +109,28 @@ async function stageImages(cfg, runDir, env) {
   const refUrl = await poyo.uploadFile(apiKey, base, refLocal);
   console.log('[images] ref url: ' + refUrl);
 
+  // Optional product (BIOGROWTH bottle) reference for the final scene
+  let bottleUrl = null;
+  if (cfg.product_reference_url) {
+    console.log('[images] uploading product (BIOGROWTH) reference…');
+    const bottleLocal = path.join(runDir, 'bottle.png');
+    try {
+      await downloadFile(cfg.product_reference_url, bottleLocal);
+      bottleUrl = await poyo.uploadFile(apiKey, base, bottleLocal);
+      console.log('[images] bottle url: ' + bottleUrl);
+    } catch (e) {
+      console.log('[images] bottle upload failed (continuing without): ' + e.message);
+    }
+  }
+
   const imgDir = ensureDir(path.join(runDir, 'images'));
+  const lastScene = cfg.sceneCount || 5;
   const imageFiles = [];
   for (const pr of prompts) {
     const n = pr.scene_number;
+    const refs = (n === lastScene && bottleUrl) ? [refUrl, bottleUrl] : [refUrl];
     console.log(`[images] scene ${n}…`);
-    const { buffer } = await poyo.generateImageRetry(apiKey, base, pr.prompt, [refUrl], {
+    const { buffer } = await poyo.generateImageRetry(apiKey, base, pr.prompt, refs, {
       size: process.env.POYO_IMAGE_SIZE || '9:16',
       resolution: process.env.POYO_IMAGE_RESOLUTION || '1K',
       quality: process.env.POYO_IMAGE_QUALITY || 'low',
@@ -201,8 +219,38 @@ async function stageVideos(cfg, runDir, env) {
   return videoFiles;
 }
 
+// ---------- STAGE: voice ----------
+async function stageVoice(cfg, runDir, env) {
+  const elKey = env.EL;
+  const voiceId = cfg.voice_id;
+  if (!elKey) throw new Error('ELEVENLABS_API_KEY is required for the voice stage');
+  if (!voiceId) throw new Error('No voice_id in crop config');
+
+  const pack = loadPack(runDir);
+  const scenes = (pack.script && pack.script.scenes) || [];
+  if (!scenes.length) throw new Error('No script in pack.json — run agents first');
+
+  // Continuous voiceover across the whole 40s (one consistent voice).
+  const fullText = scenes.map((s) => String(s.voiceover || '').trim()).join(' ');
+  console.log('[voice] TTS full voiceover (' + fullText.split(/\s+/).length + ' words) with voice ' + voiceId);
+  const res = await elevenlabs.ttsWithTimestampsRetry(elKey, voiceId, fullText, {
+    modelId: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
+    stability: 0.5, similarityBoost: 0.8, style: 0.0,
+  }, 3);
+  const audioPath = path.join(runDir, 'voiceover.mp3');
+  saveBuffer(res.audio, audioPath);
+  console.log('[voice] audio -> ' + audioPath + ' (' + Math.round(res.audio.length / 1024) + ' KB, ' + res.words.length + ' words timed)');
+
+  pack.voice = { audio: 'voiceover.mp3', wordCount: res.words.length };
+  pack._voiceWords = res.words; // kept locally; pack.json stores path only
+  fs.writeFileSync(path.join(runDir, 'pack.json'), JSON.stringify(pack, null, 2), 'utf8');
+  // persist word timings separately (don't bloat pack.json)
+  fs.writeFileSync(path.join(runDir, 'voice_words.json'), JSON.stringify(res.words), 'utf8');
+  return { audioPath, words: res.words };
+}
+
 // ---------- STAGE: stitch ----------
-function stageStitch(cfg, runDir) {
+async function stageStitch(cfg, runDir) {
   const pack = loadPack(runDir);
   const vids = (pack.videos || []).slice().sort((a, b) => a.scene_number - b.scene_number);
   if (!vids.length) throw new Error('No videos to stitch — run --only videos first');
@@ -210,8 +258,30 @@ function stageStitch(cfg, runDir) {
     console.log('[stitch] ffmpeg not found — skipping (install ffmpeg or set FFMPEG_BIN)');
     return null;
   }
-  const out = path.join(runDir, `final_${cfg.crop_id}_${stamp()}.mp4`);
-  ffmpeg.combineVideos(vids.map((v) => v.file), out);
+
+  const combined = path.join(runDir, 'combined.mp4');
+  console.log('[stitch] concatenating ' + vids.length + ' scene videos (visual only)…');
+  ffmpeg.concatVisualOnly(vids.map((v) => v.file), combined);
+
+  const total = ffmpeg.probeDuration(combined);
+  console.log('[stitch] combined duration: ' + total.toFixed(1) + 's');
+
+  const out = path.join(runDir, 'final_' + cfg.crop_id + '_' + stamp() + '.mp4');
+  const audioPath = path.join(runDir, 'voiceover.mp3');
+
+  if (pack.voice && fs.existsSync(audioPath)) {
+    // burn subtitles + voiceover audio
+    const wordsPath = path.join(runDir, 'voice_words.json');
+    const words = fs.existsSync(wordsPath) ? JSON.parse(fs.readFileSync(wordsPath, 'utf8')) : [];
+    const assPath = path.join(runDir, 'subtitles.ass');
+    fs.writeFileSync(assPath, subtitles.wordsToAss(words, total), 'utf8');
+    console.log('[stitch] muxing voiceover + burning subtitles…');
+    ffmpeg.buildFinal(combined, audioPath, assPath, out);
+  } else {
+    console.log('[stitch] no voiceover — plain concat (no subtitles/audio)');
+    ffmpeg.concatVisualOnly(vids.map((v) => v.file), out);
+  }
+
   pack.finalVideo = out;
   fs.writeFileSync(path.join(runDir, 'pack.json'), JSON.stringify(pack, null, 2), 'utf8');
   console.log('[stitch] final -> ' + out);
@@ -252,6 +322,7 @@ async function main() {
     POYO: process.env.POYO_API_KEY,
     POYO_BASE: process.env.POYO_BASE || 'https://api.poyo.ai',
     VNS: process.env.VEONONSTOP_API_KEY,
+    EL: process.env.ELEVENLABS_API_KEY,
   };
 
   console.log(`=== cartoon-plants | crop=${cropId} | stage=${only} | scenes=${sceneCount} ===`);
@@ -267,8 +338,11 @@ async function main() {
     if (only === 'videos' || only === 'all') {
       await stageVideos(cfg, runDir, env);
     }
+    if (only === 'voice' || only === 'all') {
+      await stageVoice(cfg, runDir, env);
+    }
     if (only === 'stitch' || only === 'all') {
-      stageStitch(cfg, runDir);
+      await stageStitch(cfg, runDir);
     }
 
     // optional Drive upload
