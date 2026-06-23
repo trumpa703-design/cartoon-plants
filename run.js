@@ -220,12 +220,23 @@ async function main() {
   const sceneCount = Number(process.env.SCENE_COUNT || args.scenes || 5);
 
   if (!cropId || !CROPS.includes(cropId)) {
-    console.error('Usage: node run.js --crop <' + CROPS.join('|') + '> [--only agents|images|videos|stitch|all]');
+    console.error('Usage: node run.js --crop <' + CROPS.join('|') + '> [--only agents|images|videos|stitch|all] [--resume <stamp>]');
     process.exit(1);
   }
 
   const cfg = loadCrop(cropId);
-  const runDir = ensureDir(path.join(__dirname, 'output', cropId, stamp()));
+  // --resume <stamp>: reuse output/<crop>/<stamp> so stages can run separately.
+  // --run <path>: reuse an explicit run directory.
+  let runDir;
+  if (args.resume) {
+    runDir = path.join(__dirname, 'output', cropId, args.resume);
+    if (!fs.existsSync(runDir)) { console.error('Resume dir not found: ' + runDir); process.exit(1); }
+  } else if (args.run) {
+    runDir = path.isAbsolute(args.run) ? args.run : path.join(__dirname, args.run);
+    ensureDir(runDir);
+  } else {
+    runDir = ensureDir(path.join(__dirname, 'output', cropId, stamp()));
+  }
 
   const env = {
     OR: process.env.OPENROUTER_API_KEY,
