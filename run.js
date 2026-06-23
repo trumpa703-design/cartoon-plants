@@ -25,6 +25,7 @@ const ffmpeg = require('./lib/ffmpeg');
 const google = require('./lib/google');
 const elevenlabs = require('./lib/elevenlabs');
 const subtitles = require('./lib/subtitles');
+const kie = require('./lib/kie-video');
 
 // ---------- tiny .env loader (no dotenv dependency) ----------
 function loadEnv(file) {
@@ -159,10 +160,12 @@ async function stageImages(cfg, runDir, env) {
 
 // ---------- STAGE: videos ----------
 async function stageVideos(cfg, runDir, env) {
+  const useKie = !!env.KIE;
   const vnsKey = env.VNS;
+  const kieKey = env.KIE;
   const poyoKey = env.POYO;
   const poyoBase = env.POYO_BASE || 'https://api.poyo.ai';
-  if (!vnsKey) throw new Error('VEONONSTOP_API_KEY is required for the videos stage');
+  if (!useKie && !vnsKey) throw new Error('Set KIE_API_KEY (kie veo3_lite, 720p) or VEONONSTOP_API_KEY for the videos stage');
 
   const pack = loadPack(runDir);
   const videos = pack.videoPrompts || [];
@@ -170,27 +173,19 @@ async function stageVideos(cfg, runDir, env) {
   if (!videos.length) throw new Error('No video_prompts in pack.json — run agents first');
   if (images.length < videos.length) throw new Error('Scene images missing — run --only images first');
 
-  // Idempotent: skip scenes that already have a downloaded video; retry only the rest.
   const existing = Array.isArray(pack.videos) ? pack.videos.slice() : [];
   const doneSet = new Set(existing.map((v) => v.scene_number));
   const todo = videos.filter((v) => !doneSet.has(v.scene_number));
-  if (todo.length === 0) {
-    console.log('[videos] all scenes already have videos — nothing to do');
-    return existing;
-  }
-  console.log(`[videos] ${todo.length} scene(s) to generate (skipping ${doneSet.size} done)`);
+  if (todo.length === 0) { console.log('[videos] all scenes already have videos — nothing to do'); return existing; }
+  console.log('[videos] backend=' + (useKie ? 'kie veo3_lite (720p)' : 'veononstop') + ' | ' + todo.length + ' scene(s) (skipping ' + doneSet.size + ' done)');
 
-  // Upload only the scene images we still need
+  if (!poyoKey) throw new Error('POYO_API_KEY needed to publish scene images for video generation');
   const imgUrls = {};
-  if (poyoKey) {
-    for (const v of todo) {
-      const im = images.find((i) => i.scene_number === v.scene_number);
-      if (!im) throw new Error('Scene image missing for scene ' + v.scene_number);
-      console.log(`[videos] uploading scene ${im.scene_number} image…`);
-      imgUrls[im.scene_number] = await poyo.uploadFile(poyoKey, poyoBase, im.file);
-    }
-  } else {
-    throw new Error('POYO_API_KEY needed to publish scene images for video generation');
+  for (const v of todo) {
+    const im = images.find((i) => i.scene_number === v.scene_number);
+    if (!im) throw new Error('Scene image missing for scene ' + v.scene_number);
+    console.log('[videos] uploading scene ' + im.scene_number + ' image…');
+    imgUrls[v.scene_number] = await poyo.uploadFile(poyoKey, poyoBase, im.file);
   }
 
   const vidDir = ensureDir(path.join(runDir, 'videos'));
@@ -198,28 +193,35 @@ async function stageVideos(cfg, runDir, env) {
   const videoFiles = existing.slice();
   const scenes = todo.map((v) => ({ slot: v.scene_number, prompt: v.prompt, imageUrl: imgUrls[v.scene_number] }));
 
-  // Process ONE scene at a time — VeoNonStop rejects extra concurrent jobs ("failed" / slots full).
+  // ONE scene at a time (reliable on both backends).
   for (const sc of scenes) {
-    console.log('[videos] scene ' + sc.slot + ': submitting (sequential)…');
-    let item = Object.assign({ slot: sc.slot, imageUrl: sc.imageUrl, prompt: sc.prompt }, await vns.submitVideoJob(vnsKey, sc.prompt, sc.imageUrl));
-    for (let round = 0; round < 90; round++) {
-      await sleep(8000);
-      [item] = await vns.checkVideoStatuses(vnsKey, [item]);
-      console.log('[videos] scene ' + sc.slot + ' round ' + round + ': ' + item.status);
-      if (item.status === 'succeeded' || failedStatuses.includes(String(item.status).toLowerCase())) break;
-    }
-    if (item.status === 'succeeded' && item.videoUrl) {
-      const buf = await vns.downloadVideo(vnsKey, item.videoUrl);
+    console.log('[videos] scene ' + sc.slot + ': generating…');
+    let ok = false, errMsg = '';
+    try {
+      let buf;
+      if (useKie) {
+        const res = await kie.generateVideoRetry(kieKey, sc.prompt, [sc.imageUrl], { resolution: '720p', duration: 8 }, 3);
+        buf = await kie.downloadVideo(res.videoUrl);
+      } else {
+        let item = Object.assign({ slot: sc.slot }, await vns.submitVideoJob(vnsKey, sc.prompt, sc.imageUrl));
+        for (let round = 0; round < 90; round++) {
+          await sleep(8000);
+          [item] = await vns.checkVideoStatuses(vnsKey, [item]);
+          if (item.status === 'succeeded' || failedStatuses.includes(String(item.status).toLowerCase())) break;
+        }
+        if (item.status !== 'succeeded' || !item.videoUrl) throw new Error(item.status + ': ' + (item.error || ''));
+        buf = await vns.downloadVideo(vnsKey, item.videoUrl);
+      }
       const file = path.join(vidDir, 'scene_' + sc.slot + '.mp4');
       saveBuffer(buf, file);
       videoFiles.push({ scene_number: sc.slot, file });
       console.log('[videos] scene ' + sc.slot + ' OK -> ' + file);
-    } else {
-      console.log('[videos] scene ' + sc.slot + ' FAILED (' + item.status + '): ' + (item.error || ''));
-    }
+      ok = true;
+    } catch (e) { errMsg = e.message; }
+    if (!ok) console.log('[videos] scene ' + sc.slot + ' FAILED: ' + errMsg);
     pack.videos = videoFiles.slice();
     fs.writeFileSync(path.join(runDir, 'pack.json'), JSON.stringify(pack, null, 2), 'utf8');
-    await sleep(3000);
+    await sleep(useKie ? 5000 : 40000);
   }
 
   pack.videos = videoFiles;
@@ -311,6 +313,7 @@ async function main() {
     POYO_BASE: process.env.POYO_BASE || 'https://api.poyo.ai',
     VNS: process.env.VEONONSTOP_API_KEY,
     EL: process.env.ELEVENLABS_API_KEY,
+    KIE: process.env.KIE_API_KEY,
   };
 
   console.log(`=== cartoon-plants | crop=${cropId} | stage=${only} | scenes=${sceneCount} ===`);
