@@ -28,6 +28,9 @@ function sceneRolesText(sceneCount) {
 }
 
 // ---------- 1. BRAINSTORM ----------
+
+// Mandatory CTA phrase baked into the final scene of every crop.
+const CTA_PHRASE = 'ищете удобрение БИОГРОУ в поиске на ВЭБЭ';
 function brainstormSys(cfg, season) {
   return [
     `Ты — Idea Brainstorm Agent контент-завода про ${cfg.crop_ru}.`,
@@ -105,10 +108,11 @@ function scriptSys(cfg, sceneCount) {
     ``,
     `Правила:`,
     `1. Ровно ${n} сцен.`,
-    `2. Одна voiceover-реплика на сцену, ровно ${cfg.voiceover_word_min || 16}–${cfg.voiceover_word_max || 17} русских слов, точный word_count.`,
+    `2. Одна voiceover-реплика на сцену, ровно ${cfg.voiceover_word_min || 17}–${cfg.voiceover_word_max || 18} русских слов, точный word_count.`,
     `3. Каждый совет АГРОНОМИЧЕСКИ ТОЧНЫЙ (далее фактчекинг, но старайся сразу давать верные данные).`,
     `4. Поле claim в каждой сцене — коротко суть фактического утверждения.`,
     `5. Без музыки, субтитров, визуальных промптов.`,
+    `6. Сцена ${n} (cta_final): персонаж ДЕРЖИТ бутылку BIOGROWTH; реплика ОБЯЗАТЕЛЬНО содержит дословно фразу «${CTA_PHRASE}» (вплетённую естественно в призыв), вся реплика ${cfg.voiceover_word_min || 17}–${cfg.voiceover_word_max || 18} слов.`,
     ``,
     `Роли сцен:`,
     sceneRolesText(n),
@@ -142,7 +146,8 @@ function factcheckSys(cfg, sceneCount) {
     `6. Противоречия — не противоречат ли советы друг другу?`,
     ``,
     `Вердикт по каждому claim: "verified" (корректно) | "corrected" (есть неточность — даёшь исправленную формулировку) | "rejected" (неверно/вредно — заменяешь на точный совет по теме).`,
-    `Если исправил/заменил — обязательно сохрани длину voiceover ${cfg.voiceover_word_min || 16}–${cfg.voiceover_word_max || 17} слов и смысл сцены. Не выдумывай факты; если не уверен — дай проверенный базовый совет.`,
+    `Если исправил/заменил — обязательно сохрани длину voiceover ${cfg.voiceover_word_min || 17}–${cfg.voiceover_word_max || 18} слов и смысл сцены. Не выдумывай факты; если не уверен — дай проверенный базовый совет.`,
+    `ВАЖНО: последнюю сцену (CTA) и обязательную фразу «${CTA_PHRASE}» НЕ меняй — сохраняй дословно, не выкидывай, не перефразируй.`,
     ``,
     `Верни ТОЛЬКО валидный JSON:`,
     `{`,
@@ -215,7 +220,7 @@ function videoSys(cfg, sceneCount) {
     `- "Use scene X image as the exact image-to-video source..." (identity preservation)`,
     `- "Motion:" — движение сцены (камера, жесты рук, листва, реквизит) из visual/voiceover.`,
     `- "Speech / dialogue: The ${cfg.char_name} character actively speaks directly to the viewer and says exactly: «точный voiceover». Natural visible mouth movement, clear lip-sync."`,
-    `- "Voice: ${cfg.voice_description}. CRITICAL VOICE CONSISTENCY: use EXACTLY this same voice in every single scene — identical timbre, pitch, age, accent and energy. It must sound like one and the same person speaking across all 5 scenes, recorded in one session; never change the voice."`,
+    `- "Voice: ${cfg.voice_description}. The voice MUST sound NATURAL, WARM and HUMAN — strictly NON-robotic, NON-synthetic, NON-monotone, never flat or machine-like; expressive human delivery with natural intonation and emotion. CRITICAL VOICE CONSISTENCY: use EXACTLY this same voice in every single scene — identical timbre, pitch, age, accent and energy. It must sound like one and the same person speaking across all 5 scenes, recorded in one session; never change the voice, never make it robotic."`,
     `- "Ending: the scene ENDS on a stable, held final frame of the character. ABSOLUTELY NO transition at the end — no fade-out, no fade-to-black, no crossfade, no dissolve, no wipe, no blur-out. End on a clean abrupt cut on a sharp still frame of the character; the very last frame is a still, not a fade."`,
     `- "Video style: vertical 9:16, ~8 seconds, semi-realistic cartoon realism, cinematic natural sunlight, subtle motion. No subtitles, no captions, no text overlays, no music, no singing, no morphing, NO transitions at the end of the scene."`,
     ``,
@@ -226,10 +231,11 @@ function videoSys(cfg, sceneCount) {
     `4. source_image_placeholder строго: scene 1 → {{scene_1_image}}, … scene ${n} → {{scene_${n}_image}}.`,
     `5. prompt — подробный многоабзацный текст.`,
     `6. Не меняй voiceover — вставляй ровно как в сценарии.`,
+    `7. В сцене ${n} (CTA) персонаж ДЕРЖИТ бутылку BIOGROWTH стабильной, этикеткой к камере (label readable), и произносит обязательную фразу из voiceover без изменений.`,
   ].join('\n');
 }
 
-module.exports = { brainstormSys, selectSys, scriptSys, factcheckSys, imageSys, videoSys, sceneRolesText, fixWordsSys };
+module.exports = { brainstormSys, selectSys, scriptSys, factcheckSys, imageSys, videoSys, sceneRolesText, fixWordsSys, CTA_PHRASE };
 
 // ---------- SCRIPT WORD-COUNT FIXER ----------
 function fixWordsSys(min, max) {

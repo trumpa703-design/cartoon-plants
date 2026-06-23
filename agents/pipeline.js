@@ -40,6 +40,48 @@ async function enforceWordCount(apiKey, model, script, min, max) {
 }
 
 /**
+ * Ensure the final scene's voiceover contains the mandatory CTA phrase (verbatim).
+ */
+async function enforceCTAPhrase(apiKey, model, script, min, max) {
+  const scenes = (script && script.scenes) || [];
+  if (!scenes.length) return script;
+  const last = scenes[scenes.length - 1];
+  const phrase = prompts.CTA_PHRASE;
+  const hay = String(last.voiceover || '').toLowerCase();
+  const ok = phrase.split(/\s+/).every((w) => hay.includes(w.toLowerCase()));
+  if (ok) {
+    console.log('   CTA-фраза на месте');
+    return script;
+  }
+  console.log('   CTA-фраза отсутствует — вставляю в финальную сцену…');
+  const sys = [
+    'Ты — CTA Fixer. В финальной сцене voiceover ОБЯЗАТЕЛЬНО должен содержать дословно фразу:',
+    '«' + phrase + '»',
+    'вплетённую естественно в призыв (персонаж держит бутылку BIOGROWTH).',
+    'Перепиши ТОЛЬКО voiceover финальной сцены: ' + min + '-' + max + ' слов, обязательно включая эту фразу дословно.',
+    'Верни ТОЛЬКО валидный JSON: {"voiceover":"...","word_count":N}.',
+  ].join('\n');
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const fixed = await OR.chatJsonRetry(apiKey, model, sys, JSON.stringify({ current: last.voiceover }, null, 2), {}, 3);
+    const v = fixed && fixed.voiceover;
+    if (v) {
+      const hv = v.toLowerCase();
+      if (phrase.split(/\s+/).every((w) => hv.includes(w.toLowerCase()))) {
+        last.voiceover = v;
+        last.word_count = countRuWords(v);
+        console.log('   CTA-фраза вставлена');
+        return script;
+      }
+    }
+  }
+  // last resort: hard-embed the phrase
+  last.voiceover = phrase + ' — подпишись на канал за советами по уходу.';
+  last.word_count = countRuWords(last.voiceover);
+  console.log('   CTA-фраза вшита принудительно');
+  return script;
+}
+
+/**
  * Run the full agent pipeline for one crop.
  * @param {object} o
  *   apiKey, model, factModel, cfg (crop config), season, sceneCount
@@ -81,6 +123,8 @@ async function runPipeline(o) {
   const wmin = cfg.voiceover_word_min || 16;
   const wmax = cfg.voiceover_word_max || 17;
   script = await enforceWordCount(apiKey, model, script, wmin, wmax);
+  // enforce mandatory CTA phrase in the final scene
+  script = await enforceCTAPhrase(apiKey, model, script, wmin, wmax);
 
   console.log('[4/6] ФАКТЧЕК агрономической точности…');
   const factcheck = await OR.chatJsonRetry(
