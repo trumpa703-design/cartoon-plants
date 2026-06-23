@@ -10,10 +10,11 @@
   "scripts": {
     "start": "node run.js",
     "setup-google": "node setup-google.js",
-    "agents:tomato": "node run.js --crop tomato",
-    "agents:strawberry": "node run.js --crop strawberry",
-    "agents:cucumber": "node run.js --crop cucumber",
-    "agents:potato": "node run.js --crop potato"
+    "selftest": "node selftest.js",
+    "agents:tomato": "node run.js --crop tomato --only agents",
+    "agents:strawberry": "node run.js --crop strawberry --only agents",
+    "agents:cucumber": "node run.js --crop cucumber --only agents",
+    "agents:potato": "node run.js --crop potato --only agents"
   },
   "dependencies": {
     "googleapis": "^144.0.0"

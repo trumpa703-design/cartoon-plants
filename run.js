@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { parseArgs, ensureDir, saveBuffer, stamp, sleep, extractJson } = require('./lib/util');
+const { parseArgs, ensureDir, saveBuffer, stamp, sleep, extractJson, ensureRefLocal } = require('./lib/util');
 const { runPipeline } = require('./agents/pipeline');
 const poyo = require('./lib/poyo-image-gpt2');
 const vns = require('./lib/veononstop');
@@ -103,7 +103,8 @@ async function stageImages(cfg, runDir, env) {
   if (!prompts.length) throw new Error('No image_prompts in pack.json — run agents first');
 
   console.log('[images] uploading reference image…');
-  const refUrl = await poyo.uploadFile(apiKey, base, refPath(cfg));
+  const refLocal = await ensureRefLocal(cfg, __dirname);
+  const refUrl = await poyo.uploadFile(apiKey, base, refLocal);
   console.log('[images] ref url: ' + refUrl);
 
   const imgDir = ensureDir(path.join(runDir, 'images'));

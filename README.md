@@ -29,6 +29,14 @@
 ```bash
 npm install
 cp .env.example .env      # заполнить ключи
+
+# Проверка связи картинок+видео на одной сцене (без агентов, перед полным прогоном):
+node selftest.js --crop tomato
+
+# Только агенты (идеи→фактчек→промпты), дёшево:
+node run.js --crop tomato --only agents
+
+# Весь пайплайн: агенты → картинки → видео → склейка
 node run.js --crop tomato
 ```
 
