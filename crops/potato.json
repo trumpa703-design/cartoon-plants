@@ -1,0 +1,67 @@
+{
+  "crop_id": "potato",
+  "crop_ru": "картофель",
+  "crop_en": "potato",
+  "char_name": "Prohor",
+  "gender": "male",
+  "reference": "references/potato_ref.jpeg",
+  "sceneCount": 5,
+  "voice_id": "potato_voice_ru_male_warm_20_30",
+  "voice_description": "warm friendly Russian male voice, young adult 20-30 years old, grounded, calm but lively, caring, trustworthy, slightly smiling, clear diction, medium-slow pace, friendly garden mentor tone; not childish, not old, not robotic, not theatrical",
+  "environment_core": "realistic richly detailed potato bed / ridged soil field with warm natural sunlight, rustic tools, textured soil, potato ridges, garden tools",
+  "topic_examples": [
+    "Почему картофель мелкий",
+    "Как получить больше клубней без химии",
+    "Когда окучивать картофель",
+    "Как правильно поливать картофель в жару",
+    "Почему желтеет ботва картофеля",
+    "Как защитить картофель от фитофторы",
+    "Какая подкормка нужна картофелю",
+    "Как понять, что картофель пора копать",
+    "Почему клубни зеленеют",
+    "Как сохранить урожай картофеля"
+  ],
+  "content_angles": [
+    "problem_solution",
+    "common_mistake",
+    "myth_busting",
+    "pro_secret",
+    "seasonal_timing",
+    "quick_win"
+  ],
+  "hook_styles": [
+    "question",
+    "shocking_fact",
+    "mistake_warning",
+    "myth_bust",
+    "before_after",
+    "secret_trick"
+  ],
+  "actions": [
+    "points at small potato tubers near soil",
+    "shows potato ridges and hilling around stems",
+    "gestures toward yellowing potato leaves",
+    "touches moist soil near the roots",
+    "shows healthy potato flowers and strong stems",
+    "presents harvested potatoes in a wooden crate",
+    "holds a small hoe or rake nearby carefully",
+    "holds BIOGROWTH bottle in final scene"
+  ],
+  "props": [
+    "rake", "hoe", "shovel", "watering can", "bucket", "garden gloves",
+    "plant labels", "wooden crate with potatoes", "rustic fence", "hose",
+    "wooden boards", "potato ridges", "BIOGROWTH bottle"
+  ],
+  "cta_styles": [
+    "native Telegram CTA",
+    "soft BIOGROWTH product integration",
+    "direct product recommendation with Telegram CTA"
+  ],
+  "episode_structure": [
+    { "scene_number": 1, "scene_role": "hook", "goal": "Hook attention and promise a useful result." },
+    { "scene_number": 2, "scene_role": "advice_1", "goal": "First practical potato-care advice." },
+    { "scene_number": 3, "scene_role": "advice_2", "goal": "Second practical advice with different action." },
+    { "scene_number": 4, "scene_role": "advice_3", "goal": "Third advice or a mistake to avoid." },
+    { "scene_number": 5, "scene_role": "cta_final", "goal": "Result, optional BIOGROWTH integration and CTA." }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "crop_id": "tomato",
+  "crop_ru": "томаты",
+  "crop_en": "tomato",
+  "char_name": "Rada",
+  "gender": "female",
+  "reference": "references/tomato_ref.jpeg",
+  "sceneCount": 5,
+  "voice_id": "tomato_voice_ru_female_warm_30_40",
+  "voice_description": "warm soft Russian female voice, adult 30-40 years old, calm, caring, trustworthy, slightly smiling, clear diction, medium-slow pace, friendly garden mentor tone; not childish, not old, not robotic, not theatrical",
+  "environment_core": "realistic richly detailed vegetable garden / tomato bed / greenhouse-edge with warm natural sunlight, support stakes, twine, rich soil, rustic fence, garden tools",
+  "topic_examples": [
+    "Почему томаты плохо завязываются",
+    "Как получить больше плодов без химии",
+    "Почему желтеют нижние листья",
+    "Как правильно поливать томаты в жару",
+    "Зачем удалять пасынки",
+    "Как ускорить созревание томатов",
+    "Как ухаживать за томатами в теплице",
+    "Как избежать фитофторы",
+    "Какая подкормка нужна томатам",
+    "Почему томаты трескаются"
+  ],
+  "content_angles": [
+    "problem_solution",
+    "common_mistake",
+    "myth_busting",
+    "pro_secret",
+    "seasonal_timing",
+    "quick_win"
+  ],
+  "hook_styles": [
+    "question",
+    "shocking_fact",
+    "mistake_warning",
+    "myth_bust",
+    "before_after",
+    "secret_trick"
+  ],
+  "actions": [
+    "points at suckers in leaf axils",
+    "shows lower leaves close to soil",
+    "touches support stake and garden twine",
+    "gestures toward watering can or mulch",
+    "shows healthy flower clusters and fruit set",
+    "presents ripe tomato clusters",
+    "holds pruning scissors carefully",
+    "holds BIOGROWTH bottle in final scene"
+  ],
+  "props": [
+    "rake", "watering can", "pruning scissors", "bucket", "garden gloves",
+    "plant labels", "support stakes", "garden twine", "wooden crate with tomatoes",
+    "greenhouse structure", "rustic fence", "hose", "wooden boards", "BIOGROWTH bottle"
+  ],
+  "cta_styles": [
+    "native Telegram CTA",
+    "soft BIOGROWTH product integration",
+    "direct product recommendation with Telegram CTA"
+  ],
+  "episode_structure": [
+    { "scene_number": 1, "scene_role": "hook", "goal": "Hook attention and promise a useful result." },
+    { "scene_number": 2, "scene_role": "advice_1", "goal": "First practical tomato-care advice." },
+    { "scene_number": 3, "scene_role": "advice_2", "goal": "Second practical advice with different action." },
+    { "scene_number": 4, "scene_role": "advice_3", "goal": "Third advice or a mistake to avoid." },
+    { "scene_number": 5, "scene_role": "cta_final", "goal": "Result, optional BIOGROWTH integration and CTA." }
+  ]
+}

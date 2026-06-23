@@ -1,0 +1,67 @@
+{
+  "crop_id": "cucumber",
+  "crop_ru": "огурцы",
+  "crop_en": "cucumber",
+  "char_name": "Tisha",
+  "gender": "male",
+  "reference": "references/cucumber_ref.jpeg",
+  "sceneCount": 5,
+  "voice_id": "cucumber_voice_ru_male_warm_20_30",
+  "voice_description": "warm friendly Russian male voice, young adult 20-30 years old, calm but lively, caring, trustworthy, slightly smiling, clear diction, medium-slow pace, friendly garden mentor tone; not childish, not old, not robotic, not theatrical",
+  "environment_core": "realistic richly detailed cucumber bed / vegetable garden / greenhouse-edge with trellis, support net, twine, warm natural sunlight, rich soil, garden tools",
+  "topic_examples": [
+    "Почему огурцы горчат",
+    "Как получить больше огурцов без химии",
+    "Почему желтеют завязи огурцов",
+    "Как правильно поливать огурцы в жару",
+    "Зачем формировать огуречную плеть",
+    "Как ухаживать за огурцами в теплице",
+    "Почему огурцы кривые",
+    "Как защитить огурцы от жары",
+    "Какая подкормка нужна огурцам",
+    "Как продлить плодоношение огурцов"
+  ],
+  "content_angles": [
+    "problem_solution",
+    "common_mistake",
+    "myth_busting",
+    "pro_secret",
+    "seasonal_timing",
+    "quick_win"
+  ],
+  "hook_styles": [
+    "question",
+    "shocking_fact",
+    "mistake_warning",
+    "myth_bust",
+    "before_after",
+    "secret_trick"
+  ],
+  "actions": [
+    "points at yellowing cucumber ovaries",
+    "shows cucumber leaves and tendrils on a trellis",
+    "touches support net and garden twine",
+    "gestures toward watering can and moist soil",
+    "shows cucumber flowers and fruit set",
+    "presents fresh green cucumbers",
+    "holds pruning scissors carefully",
+    "holds BIOGROWTH bottle in final scene"
+  ],
+  "props": [
+    "trellis", "support net", "watering can", "pruning scissors", "bucket",
+    "garden gloves", "plant labels", "garden twine", "wooden crate with cucumbers",
+    "greenhouse structure", "rustic fence", "hose", "wooden boards", "BIOGROWTH bottle"
+  ],
+  "cta_styles": [
+    "native Telegram CTA",
+    "soft BIOGROWTH product integration",
+    "direct product recommendation with Telegram CTA"
+  ],
+  "episode_structure": [
+    { "scene_number": 1, "scene_role": "hook", "goal": "Hook attention and promise a useful result." },
+    { "scene_number": 2, "scene_role": "advice_1", "goal": "First practical cucumber-care advice." },
+    { "scene_number": 3, "scene_role": "advice_2", "goal": "Second practical advice with different action." },
+    { "scene_number": 4, "scene_role": "advice_3", "goal": "Third advice or a mistake to avoid." },
+    { "scene_number": 5, "scene_role": "cta_final", "goal": "Result, optional BIOGROWTH integration and CTA." }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "cartoon-plants",
+  "version": "1.0.0",
+  "description": "Cartoon plant content factory — 4 crops (tomato, strawberry, cucumber, potato). Agents (OpenRouter) + images (PoYo gpt-image-2) + video (VeoNonStop).",
+  "main": "run.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node run.js",
+    "setup-google": "node setup-google.js",
+    "agents:tomato": "node run.js --crop tomato",
+    "agents:strawberry": "node run.js --crop strawberry",
+    "agents:cucumber": "node run.js --crop cucumber",
+    "agents:potato": "node run.js --crop potato"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}

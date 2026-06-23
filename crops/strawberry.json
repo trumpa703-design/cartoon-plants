@@ -1,0 +1,67 @@
+{
+  "crop_id": "strawberry",
+  "crop_ru": "клубника",
+  "crop_en": "strawberry",
+  "char_name": "Dusya",
+  "gender": "female",
+  "reference": "references/strawberry_ref.jpeg",
+  "sceneCount": 5,
+  "voice_id": "strawberry_voice_ru_female_warm_20_30",
+  "voice_description": "warm soft Russian female voice, young adult 20-30 years old, gentle, lively, caring, trustworthy, slightly smiling, clear diction, medium-slow pace, friendly garden mentor tone; not childish, not old, not robotic, not theatrical",
+  "environment_core": "realistic richly detailed strawberry bed / raised bed with straw mulch, warm natural sunlight, garden tools, rustic fence, textured soil",
+  "topic_examples": [
+    "Почему клубника мелкая",
+    "Как получить больше ягод без химии",
+    "Почему клубника плохо цветёт",
+    "Как правильно поливать клубнику в жару",
+    "Зачем удалять усы клубники",
+    "Как защитить клубнику от гнили",
+    "Какая подкормка нужна клубнике",
+    "Почему ягоды лежат на земле",
+    "Когда обновлять клубничную грядку",
+    "Как продлить плодоношение клубники"
+  ],
+  "content_angles": [
+    "problem_solution",
+    "common_mistake",
+    "myth_busting",
+    "pro_secret",
+    "seasonal_timing",
+    "quick_win"
+  ],
+  "hook_styles": [
+    "question",
+    "shocking_fact",
+    "mistake_warning",
+    "myth_bust",
+    "before_after",
+    "secret_trick"
+  ],
+  "actions": [
+    "points at strawberry runners",
+    "shows ripe berries near straw mulch",
+    "touches straw mulch under berries",
+    "gestures toward watering can and moist soil",
+    "shows white flowers and new fruit set",
+    "presents a basket of ripe strawberries",
+    "holds pruning scissors carefully",
+    "holds BIOGROWTH bottle in final scene"
+  ],
+  "props": [
+    "straw mulch", "watering can", "pruning scissors", "bucket", "garden gloves",
+    "plant labels", "wooden basket with strawberries", "raised bed", "rustic fence",
+    "hose", "wooden boards", "BIOGROWTH bottle"
+  ],
+  "cta_styles": [
+    "native Telegram CTA",
+    "soft BIOGROWTH product integration",
+    "direct product recommendation with Telegram CTA"
+  ],
+  "episode_structure": [
+    { "scene_number": 1, "scene_role": "hook", "goal": "Hook attention and promise a useful result." },
+    { "scene_number": 2, "scene_role": "advice_1", "goal": "First practical strawberry-care advice." },
+    { "scene_number": 3, "scene_role": "advice_2", "goal": "Second practical advice with different action." },
+    { "scene_number": 4, "scene_role": "advice_3", "goal": "Third advice or a mistake to avoid." },
+    { "scene_number": 5, "scene_role": "cta_final", "goal": "Result, optional BIOGROWTH integration and CTA." }
+  ]
+}

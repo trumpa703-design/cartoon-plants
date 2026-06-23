@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Secrets — НИКОГДА не коммитить
+.env
+.env.*
+!.env.example
+tokens.json
+*.token
+service-account*.json
+
+# Generated output
+output/
+*.mp4
+*.mp3
+*.wav
+
+# Ignore all generated images, BUT keep the canonical references
+*.jpg
+*.png
+*.jpeg
+!references/**/*.jpeg
+!references/**/*.jpg
+!references/**/*.png
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
