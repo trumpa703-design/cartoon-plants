@@ -125,20 +125,30 @@ async function stageImages(cfg, runDir, env) {
 
   const imgDir = ensureDir(path.join(runDir, 'images'));
   const lastScene = cfg.sceneCount || 5;
-  const imageFiles = [];
+  const imageFiles = Array.isArray(pack.images) ? pack.images.slice() : [];
+  const haveImg = (n) => imageFiles.some((i) => i.scene_number === n) || fs.existsSync(path.join(imgDir, 'scene_' + n + '.jpg'));
+
   for (const pr of prompts) {
     const n = pr.scene_number;
+    if (haveImg(n)) {
+      const f = path.join(imgDir, 'scene_' + n + '.jpg');
+      if (!imageFiles.some((i) => i.scene_number === n)) imageFiles.push({ scene_number: n, file: f });
+      console.log('[images] scene ' + n + ' already exists — skip');
+      continue;
+    }
     const refs = (n === lastScene && bottleUrl) ? [refUrl, bottleUrl] : [refUrl];
-    console.log(`[images] scene ${n}…`);
+    console.log('[images] scene ' + n + '…');
     const { buffer } = await poyo.generateImageRetry(apiKey, base, pr.prompt, refs, {
       size: process.env.POYO_IMAGE_SIZE || '9:16',
       resolution: process.env.POYO_IMAGE_RESOLUTION || '1K',
       quality: process.env.POYO_IMAGE_QUALITY || 'low',
     }, 3);
-    const file = path.join(imgDir, `scene_${n}.jpg`);
+    const file = path.join(imgDir, 'scene_' + n + '.jpg');
     saveBuffer(buffer, file);
     imageFiles.push({ scene_number: n, file });
-    console.log(`[images] scene ${n} OK -> ${file}`);
+    console.log('[images] scene ' + n + ' OK -> ' + file);
+    pack.images = imageFiles;
+    fs.writeFileSync(path.join(runDir, 'pack.json'), JSON.stringify(pack, null, 2), 'utf8');
     await sleep(2000);
   }
 
@@ -184,34 +194,32 @@ async function stageVideos(cfg, runDir, env) {
   }
 
   const vidDir = ensureDir(path.join(runDir, 'videos'));
-
-  const scenes = todo.map((v) => ({ slot: v.scene_number, prompt: v.prompt, imageUrl: imgUrls[v.scene_number] }));
-  console.log('[videos] submitting ' + scenes.length + ' jobs…');
-  let items = await vns.submitVideoJobs(vnsKey, scenes);
-
-  // poll
   const failedStatuses = ['failed', 'error', 'cancelled', 'failed_after_retries'];
-  for (let round = 0; round < 120; round++) {
-    items = await vns.checkVideoStatuses(vnsKey, items);
-    const done = items.filter((i) => i.status === 'succeeded').length;
-    console.log(`[videos] round ${round}: ${done}/${items.length} ready`);
-    if (items.some((i) => failedStatuses.includes(String(i.status).toLowerCase())) && items.every((i) => i.status === 'succeeded' || failedStatuses.includes(String(i.status).toLowerCase()))) break;
-    if (items.every((i) => i.status === 'succeeded')) break;
-    await sleep(10000);
-  }
-
-  // download — keep previously succeeded, append new ones
   const videoFiles = existing.slice();
-  for (const it of items) {
-    if (it.status !== 'succeeded' || !it.videoUrl) {
-      console.log(`[videos] scene ${it.slot} NOT ready (status=${it.status})`);
-      continue;
+  const scenes = todo.map((v) => ({ slot: v.scene_number, prompt: v.prompt, imageUrl: imgUrls[v.scene_number] }));
+
+  // Process ONE scene at a time — VeoNonStop rejects extra concurrent jobs ("failed" / slots full).
+  for (const sc of scenes) {
+    console.log('[videos] scene ' + sc.slot + ': submitting (sequential)…');
+    let item = Object.assign({ slot: sc.slot, imageUrl: sc.imageUrl, prompt: sc.prompt }, await vns.submitVideoJob(vnsKey, sc.prompt, sc.imageUrl));
+    for (let round = 0; round < 90; round++) {
+      await sleep(8000);
+      [item] = await vns.checkVideoStatuses(vnsKey, [item]);
+      console.log('[videos] scene ' + sc.slot + ' round ' + round + ': ' + item.status);
+      if (item.status === 'succeeded' || failedStatuses.includes(String(item.status).toLowerCase())) break;
     }
-    const buf = await vns.downloadVideo(vnsKey, it.videoUrl);
-    const file = path.join(vidDir, `scene_${it.slot}.mp4`);
-    saveBuffer(buf, file);
-    videoFiles.push({ scene_number: it.slot, file });
-    console.log(`[videos] scene ${it.slot} OK -> ${file}`);
+    if (item.status === 'succeeded' && item.videoUrl) {
+      const buf = await vns.downloadVideo(vnsKey, item.videoUrl);
+      const file = path.join(vidDir, 'scene_' + sc.slot + '.mp4');
+      saveBuffer(buf, file);
+      videoFiles.push({ scene_number: sc.slot, file });
+      console.log('[videos] scene ' + sc.slot + ' OK -> ' + file);
+    } else {
+      console.log('[videos] scene ' + sc.slot + ' FAILED (' + item.status + '): ' + (item.error || ''));
+    }
+    pack.videos = videoFiles.slice();
+    fs.writeFileSync(path.join(runDir, 'pack.json'), JSON.stringify(pack, null, 2), 'utf8');
+    await sleep(3000);
   }
 
   pack.videos = videoFiles;
@@ -258,30 +266,10 @@ async function stageStitch(cfg, runDir) {
     console.log('[stitch] ffmpeg not found — skipping (install ffmpeg or set FFMPEG_BIN)');
     return null;
   }
-
-  const combined = path.join(runDir, 'combined.mp4');
-  console.log('[stitch] concatenating ' + vids.length + ' scene videos (visual only)…');
-  ffmpeg.concatVisualOnly(vids.map((v) => v.file), combined);
-
-  const total = ffmpeg.probeDuration(combined);
-  console.log('[stitch] combined duration: ' + total.toFixed(1) + 's');
-
   const out = path.join(runDir, 'final_' + cfg.crop_id + '_' + stamp() + '.mp4');
-  const audioPath = path.join(runDir, 'voiceover.mp3');
-
-  if (pack.voice && fs.existsSync(audioPath)) {
-    // burn subtitles + voiceover audio
-    const wordsPath = path.join(runDir, 'voice_words.json');
-    const words = fs.existsSync(wordsPath) ? JSON.parse(fs.readFileSync(wordsPath, 'utf8')) : [];
-    const assPath = path.join(runDir, 'subtitles.ass');
-    fs.writeFileSync(assPath, subtitles.wordsToAss(words, total), 'utf8');
-    console.log('[stitch] muxing voiceover + burning subtitles…');
-    ffmpeg.buildFinal(combined, audioPath, assPath, out);
-  } else {
-    console.log('[stitch] no voiceover — plain concat (no subtitles/audio)');
-    ffmpeg.concatVisualOnly(vids.map((v) => v.file), out);
-  }
-
+  console.log('[stitch] concatenating ' + vids.length + ' scene videos WITH original Veo audio…');
+  ffmpeg.combineVideos(vids.map((v) => v.file), out);
+  console.log('[stitch] duration: ' + ffmpeg.probeDuration(out).toFixed(1) + 's');
   pack.finalVideo = out;
   fs.writeFileSync(path.join(runDir, 'pack.json'), JSON.stringify(pack, null, 2), 'utf8');
   console.log('[stitch] final -> ' + out);
@@ -337,9 +325,6 @@ async function main() {
     }
     if (only === 'videos' || only === 'all') {
       await stageVideos(cfg, runDir, env);
-    }
-    if (only === 'voice' || only === 'all') {
-      await stageVoice(cfg, runDir, env);
     }
     if (only === 'stitch' || only === 'all') {
       await stageStitch(cfg, runDir);
