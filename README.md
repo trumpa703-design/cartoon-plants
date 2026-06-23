@@ -58,15 +58,14 @@ agents/
   prompts.js           — системные промпты агентов
 crops/                 — конфиг культур (голос, банки тем, среда — БЕЗ описания персонажа)
   tomato.json strawberry.json cucumber.json potato.json
-references/            — канонические референсы персонажей (изображения = источник правды)
-  tomato_ref.jpeg strawberry_ref.jpeg cucumber_ref.jpeg potato_ref.jpeg
+references/            — локальный кэш (скачивается из Google Drive, в репо нет)
 output/                — сгенерённое (в .gitignore)
 ```
 
 ## Безопасность
 
 - Ключи **только** в `.env` (в `.gitignore`). В коде их нет.
-- `references/` — единственные картинки, которые коммитятся; весь сгенерённый медиа-контент игнорируется.
+- **Референсы персонажа живут в Google Drive** (папка `cartoon-plants-references`); в репо их нет. `run.js` сам скачивает нужный референс по `reference_url` из конфига культуры в локальный кэш `references/`.
 
 ## Отличия от veo-scripts
 

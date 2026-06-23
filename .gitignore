@@ -15,13 +15,11 @@ output/
 *.mp3
 *.wav
 
-# Ignore all generated images, BUT keep the canonical references
+# Generated images; references live in Google Drive (local references/ is a cache)
 *.jpg
 *.png
 *.jpeg
-!references/**/*.jpeg
-!references/**/*.jpg
-!references/**/*.png
+references/
 
 # Logs
 *.log
