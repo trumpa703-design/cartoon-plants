@@ -142,10 +142,22 @@ async function stageVideos(cfg, runDir, env) {
   if (!videos.length) throw new Error('No video_prompts in pack.json — run agents first');
   if (images.length < videos.length) throw new Error('Scene images missing — run --only images first');
 
-  // Upload each scene image to PoYo to get a public URL for VeoNonStop
+  // Idempotent: skip scenes that already have a downloaded video; retry only the rest.
+  const existing = Array.isArray(pack.videos) ? pack.videos.slice() : [];
+  const doneSet = new Set(existing.map((v) => v.scene_number));
+  const todo = videos.filter((v) => !doneSet.has(v.scene_number));
+  if (todo.length === 0) {
+    console.log('[videos] all scenes already have videos — nothing to do');
+    return existing;
+  }
+  console.log(`[videos] ${todo.length} scene(s) to generate (skipping ${doneSet.size} done)`);
+
+  // Upload only the scene images we still need
   const imgUrls = {};
   if (poyoKey) {
-    for (const im of images) {
+    for (const v of todo) {
+      const im = images.find((i) => i.scene_number === v.scene_number);
+      if (!im) throw new Error('Scene image missing for scene ' + v.scene_number);
       console.log(`[videos] uploading scene ${im.scene_number} image…`);
       imgUrls[im.scene_number] = await poyo.uploadFile(poyoKey, poyoBase, im.file);
     }
@@ -155,12 +167,7 @@ async function stageVideos(cfg, runDir, env) {
 
   const vidDir = ensureDir(path.join(runDir, 'videos'));
 
-  // submit all
-  const scenes = videos.map((v) => ({
-    slot: v.scene_number,
-    prompt: v.prompt,
-    imageUrl: imgUrls[v.scene_number],
-  }));
+  const scenes = todo.map((v) => ({ slot: v.scene_number, prompt: v.prompt, imageUrl: imgUrls[v.scene_number] }));
   console.log('[videos] submitting ' + scenes.length + ' jobs…');
   let items = await vns.submitVideoJobs(vnsKey, scenes);
 
@@ -175,8 +182,8 @@ async function stageVideos(cfg, runDir, env) {
     await sleep(10000);
   }
 
-  // download
-  const videoFiles = [];
+  // download — keep previously succeeded, append new ones
+  const videoFiles = existing.slice();
   for (const it of items) {
     if (it.status !== 'succeeded' || !it.videoUrl) {
       console.log(`[videos] scene ${it.slot} NOT ready (status=${it.status})`);
