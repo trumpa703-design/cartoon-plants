@@ -23,19 +23,29 @@ async function enforceWordCount(apiKey, model, script, min, max) {
     console.log('   word-count OK (все ' + min + '-' + max + ' слов)');
     return script;
   }
-  console.log('   word-count нарушен: ' + scenes.filter(isBad).map((s) => 'сц' + s.scene_number + '=' + countRuWords(s.voiceover)).join(', ') + ' — правлю…');
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const fixed = await OR.chatJsonRetry(apiKey, model, prompts.fixWordsSys(min, max), JSON.stringify({ script }, null, 2), {}, 3);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const bad = scenes.filter(isBad).map((s) => ({ scene_number: s.scene_number, current: countRuWords(s.voiceover), target: max }));
+    if (!bad.length) { console.log('   word-count исправлен'); break; }
+    console.log('   word-count правка ' + (attempt + 1) + ': ' + bad.map((b) => 'сц' + b.scene_number + '=' + b.current + '→' + b.target).join(', '));
+    const fixed = await OR.chatJsonRetry(apiKey, model, prompts.fixWordsSys(min, max), JSON.stringify({ script, fix_these: bad }, null, 2), {}, 3);
     const fscenes = (fixed && fixed.scenes) || [];
     fscenes.forEach((s) => { s.word_count = countRuWords(s.voiceover); });
-    if (fscenes.length && !fscenes.some(isBad)) {
-      console.log('   word-count исправлен');
-      return fixed;
-    }
-    script = fixed;
-    console.log('   ещё пытаюсь (' + (attempt + 1) + ')');
+    if (fscenes.length) script = fixed;
+    if (!fscenes.some(isBad)) { console.log('   word-count исправлен'); break; }
   }
-  console.log('   word-count: не идеально, беру лучший вариант');
+  // last-resort: fix each still-bad scene individually with a sharp target
+  for (const s of scenes) {
+    if (!isBad(s)) continue;
+    console.log('   добивка сцены ' + s.scene_number + ' до ' + max + ' слов…');
+    const sys = 'Перепиши voiceover РОВНО ' + max + ' русскими словами, сохранив смысл. Верни ТОЛЬКО JSON {"voiceover":"...","word_count":' + max + '}.';
+    for (let t = 0; t < 3; t++) {
+      const r = await OR.chatJsonRetry(apiKey, model, sys, JSON.stringify({ current: s.voiceover, target: max }, null, 2), {}, 3);
+      const v = r && r.voiceover;
+      const c = countRuWords(v);
+      if (c >= min && c <= max) { s.voiceover = v; s.word_count = c; break; }
+    }
+  }
+  console.log('   word-count итог: ' + scenes.map((s) => 'сц' + s.scene_number + '=' + countRuWords(s.voiceover)).join(', '));
   return script;
 }
 
